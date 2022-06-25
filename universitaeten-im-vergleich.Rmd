@@ -1,0 +1,353 @@
+---
+title: "Attraktivität von Universitäten im Vergleich"
+author: "Antonio Amaddio"
+date: "6/23/2022"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+---
+
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = FALSE)
+# Daten einlesen
+library(readr)
+#raw_data <- read_csv("data_project_935154_2022_06_22.csv")
+raw_data <- read_delim("data_project_935154_2022_06_23_perfect_data.csv", 
+    delim = ";", escape_double = FALSE, trim_ws = TRUE)
+# Uni: A; Auswertung: auto; Zeit & Ort: flexibel; Bedingung: 1
+study_data <- data.frame(id = raw_data[["lfdn"]])
+study_data$intension_to_apply_uni_a <- rowMeans(raw_data[,c("v_30", "v_31", "v_32", "v_33", "v_34")])
+study_data$attraction_uni_a <- rowMeans(raw_data[,c("v_55", "v_56", "v_57", "v_58", "v_59", "v_60", "v_61", "v_62", "v_63", "v_64" )])
+
+# Uni: B; Auswertung: human; Zeit & Ort: fix; Bedingung: 4
+study_data$intension_to_apply_uni_b <- rowMeans(raw_data[,c("v_45", "v_46", "v_47", "v_48", "v_49")])
+study_data$attraction_uni_b <- rowMeans(raw_data[,c("v_65", "v_66", "v_67", "v_68", "v_69", "v_70", "v_71", "v_72", "v_73", "v_74")])
+
+# Uni: C; Auswertung: auto; Zeit & Ort: fix; Bedingung: 2
+study_data$intension_to_apply_uni_c <- rowMeans(raw_data[,c("v_130","v_131","v_132","v_133","v_134")])
+study_data$attraction_uni_c <- rowMeans(raw_data[,c("v_110", "v_111", "v_112", "v_113", "v_114", "v_115", "v_116", "v_117", "v_118", "v_119")])
+
+# Uni: D; Auswertung: human; Zeit & Ort: flexibel; Bedingung: 3
+study_data$intension_to_apply_uni_d <- rowMeans(raw_data[,c("v_105", "v_106", "v_107", "v_108", "v_109" )])
+study_data$attraction_uni_d <- rowMeans(raw_data[,c("v_120", "v_121", "v_122", "v_123", "v_124", "v_125", "v_126", "v_127", "v_128", "v_129")])
+
+# Aggreggierte Mittelwerte nach Gruppen Auswertung: human = 0; auto = 1
+study_data$mean_intension_to_apply_uni_human_assessment <- rowMeans(cbind(study_data$intension_to_apply_uni_b, study_data$intension_to_apply_uni_d))
+study_data$mean_intension_to_apply_uni_auto_assessment <- rowMeans(cbind(study_data$intension_to_apply_uni_a, study_data$intension_to_apply_uni_c))
+study_data$mean_attraction_uni_human_assessment <- rowMeans(cbind(study_data$attraction_uni_b, study_data$attraction_apply_uni_d))
+study_data$mean_attraction_uni_auto_assessment <- rowMeans(cbind(study_data$attraction_uni_a, study_data$attraction_apply_uni_c))
+# "" nach zeitlicher / oertlicher Pruefungsmodalitaet: flexible = 0; fix = 1
+study_data$mean_intension_to_apply_uni_flexible_assessment <- rowMeans(cbind(study_data$intension_to_apply_uni_a, study_data$intension_to_apply_uni_d))
+study_data$mean_intension_to_apply_uni_fixed_assessment <- rowMeans(cbind(study_data$intension_to_apply_uni_b, study_data$intension_to_apply_uni_c))
+study_data$mean_attraction_uni_flexible_assessment <- rowMeans(cbind(study_data$attraction_uni_a, study_data$attraction_apply_uni_d))
+study_data$mean_attraction_uni_fixed_assessment <- rowMeans(cbind(study_data$attraction_uni_b, study_data$attraction_apply_uni_c))
+
+study_data$technical_affinity1 <- rowMeans(raw_data[,c("v_16", "v_17", "v_18", "v_19", "v_20" )])
+study_data$technical_affinity2 <- rowMeans(raw_data[,c("v_35", "v_36", "v_37", "v_38")])
+study_data$mean_technical_affinity <- rowMeans(cbind(study_data$technical_affinity1, study_data$technical_affinity2))
+
+# todo: noch richtig in einen Faktor konvertieren
+# oder als kontinuierliche Variable behalten?
+# https://www.datacamp.com/tutorial/factor-levels-r
+study_data$age <- raw_data[["v_76"]]
+
+# todo: noch richtig in einen Faktor konvertieren
+# https://www.datacamp.com/tutorial/factor-levels-r
+study_data$gender <- factor(raw_data[["v_79"]])
+# levels(study_data$gender) <- c("w","m","o","na")
+
+# todo: noch richtig in einen Faktor konvertieren
+# https://www.datacamp.com/tutorial/factor-levels-r
+study_data$course_of_study <- factor(raw_data[["v_135"]])
+
+# weites Datenformat in langes Datenformat ändern
+# siehe: http://www.cookbook-r.com/Manipulating_data/Converting_data_between_wide_and_long_format/
+summary(study_data)
+# add dummy 
+library(tidyr)
+#### Erstelle die aggregierten Werte für die abhängigen Variablen für die Prüfungsauswertung (H1)
+####### Bewerbungsabsicht (intension)
+assessment_data <- gather(study_data, human_auto, intension, mean_intension_to_apply_uni_human_assessment:mean_intension_to_apply_uni_auto_assessment, factor_key=TRUE)
+# Rename factor names from "mean_intension_to_apply_uni_human_assessment" and "mean_intension_to_apply_uni_auto_assessment" to "first" and "second"
+levels(assessment_data$human_auto)[levels(assessment_data$human_auto)=="mean_intension_to_apply_uni_human_assessment"] <- "human"
+levels(assessment_data$human_auto)[levels(assessment_data$human_auto)=="mean_intension_to_apply_uni_auto_assessment"] <- "auto"
+
+####### Attraktivität (attraction)
+attraction_data_long <- gather(study_data, human_auto, attraction, mean_attraction_uni_human_assessment:mean_attraction_uni_auto_assessment, factor_key=TRUE)
+
+assessment_data$attraction <- attraction_data_long$attraction
+assessment_data$mean_attraction_uni_human_assessment <- attraction_data_long$mean_attraction_uni_human_assessment
+assessment_data$mean_attraction_uni_auto_assessment <- attraction_data_long$mean_attraction_uni_auto_assessment
+rm(attraction_data_long) # Hilfsvariable löschen
+
+#### Erstelle die aggregierten Werte für die abhängigen Variablen für die Prüfungsmodalität (H2)
+modality_data <- gather(study_data, flexible_fixed, intension, mean_intension_to_apply_uni_flexible_assessment:mean_intension_to_apply_uni_fixed_assessment, factor_key=TRUE)
+# Rename factor names from "mean_intension_to_apply_uni_human_assessment" and "mean_intension_to_apply_uni_auto_assessment" to "first" and "second"
+levels(modality_data$flexible_fixed)[levels(modality_data$flexible_fixed)=="mean_intension_to_apply_uni_flexible_assessment"] <- "flexible"
+levels(modality_data$flexible_fixed)[levels(modality_data$flexible_fixed)=="mean_intension_to_apply_uni_fixed_assessment"] <- "fixed"
+
+####### Attraktivität (attraction)
+attraction_data_long <- gather(study_data, flexible_fixed, attraction, mean_attraction_uni_flexible_assessment:mean_attraction_uni_fixed_assessment, factor_key=TRUE)
+
+modality_data$attraction <- attraction_data_long$attraction
+modality_data$mean_attraction_uni_human_assessment <- attraction_data_long$mean_attraction_uni_human_assessment
+modality_data$mean_attraction_uni_auto_assessment <- attraction_data_long$mean_attraction_uni_auto_assessment
+rm(attraction_data_long) # Hilfsvariable löschen
+```
+
+# Skalen der items
+
+## Skala Bewerbungsabsicht
+ - 1: Ich stimme voll zu
+ - 2:  
+ - 3:  
+ - 4:  
+ - 5: Ich stimme gar nicht zu
+
+## Skala Attraktivität
+ - 1: Ich stimme voll zu
+ - 2:  
+ - 3:  
+ - 4:  
+ - 5: Ich stimme gar nicht zu
+
+## Skala Technische Affinität I
+ - 1: Ich stimme gar nicht zu
+ - 2:  
+ - 3:  
+ - 4:  
+ - 5: Ich stimme voll zu
+
+## Skala Technische Affinität II
+ - 1: Trifft überhaupt nicht zu
+ - 2:  
+ - 3:  
+ - 4:  
+ - 5: Trifft voll zu
+
+## Geschlecht
+
+ - 1: weiblich
+ - 2: männlich
+ - 3: andere
+ - 4: keine Angabe
+ 
+## Studiengang
+
+- 1: Biologie, Chemie, Pharmazie
+- 2: Erziehungswissenschaft und Psychologie
+- 3: Geowissenschaften
+- 4: Geschichts- und Kulturwissenschaften
+- 5: Mathematik und Informatik
+- 6: Philosophie und Geisteswissenschaften
+- 7: Physik
+- 8: Politik- und Sozialwissenschaften
+- 9: Rechtswissenschaft
+- 10: Veterinärmedizin
+- 11: Wirtschaftswissenschaft
+- 12:  Medizin
+ 
+
+# Deskriptivstatistik
+
+Mittelwerte d. abhängigen Variablen Bewerbungsabsicht:
+
+ - Personen, die Unis mit menschlicher Auswertung präferieren: <b>`r mean(study_data$mean_intension_to_apply_uni_human_assessment)`</b>
+ - Personen, die Unis mit maschineller Auswertung präferieren: <b>`r mean(study_data$mean_intension_to_apply_uni_auto_assessment)`</b>
+ 
+ Mittelwerte d. abhängigen Variablen Attraktivität (d. Uni):
+
+ - Personen, die Unis mit menschlicher Auswertung präferieren: <b>`r mean(study_data$mean_attraction_uni_human_assessment)`</b>
+ - Personen, die Unis mit maschineller Auswertung präferieren: <b>`r mean(study_data$mean_attraction_uni_auto_assessment)`</b>
+
+```{r, include=TRUE, echo=TRUE}
+
+summary(study_data)
+# Histogramm einzelner Variablen ausgeben
+# zum Beispiel Attraktivität der Uni 1
+# Mittelwert aller Attraktivitätsitems
+hist(study_data$mean_intension_to_apply_uni_human_assessment)
+hist(study_data$mean_intension_to_apply_uni_auto_assessment)
+
+# Zentrierung der kontinuierlichen Kovariaten am Gesamtmittelwert zur
+# vereinfachten Interpretation, wenn natürlicher Nullpunkt nicht sinnvoll
+assessment_data$c_age <- jtools::center(data = assessment_data$age)
+modality_data$c_age <- jtools::center(data = assessment_data$age)
+
+# Gruppenspezifische (human/auto) Mittelwerte auf dem Outcome (Attraktivität)
+library(car)
+car::Tapply(intension ~ human_auto, data = assessment_data, fun = mean)
+# Alle gruppenspezifischen Mittelwerte kontrollieren, ob große Mittelwertsunterschiede vorliegen
+#library(psych)
+psych::describeBy(assessment_data, group = assessment_data$human_auto)
+```
+
+## Hypothesentest H1: Haupteffekt der UV1
+
+Menschliche Prüfungsauswertung (human) im Vergleich zu algorithmischer Auswertung (automatisiert) führt zu höherer 
+
+ - a) Bewerbungsabsicht 
+
+```{r, include=TRUE, echo=TRUE, warning=FALSE}
+library(EffectLiteR)
+
+# - klassische ANCOVA 
+# - dichotome nominale UV: Prüfungsauswertung (human = 0; auto = 1)
+# - dichotome Kovariate: Prüfungsmodalität (flexibel = 0; fixed = 1)
+# - ordinale kategoriale Kovariate: Alter (18 - 99)
+# - nominale Kovariate: Geschlecht (weiblich = 1; männlich = 2; andere = 3; kA = 4)
+# - nominale Kovariate: Studiengang (1 - 12)
+# - ordinale kategoriale AV: intention to apply (1 = strongly agree; 6 = strongly disagree)
+# - Dummykodierung: Bedingung 3 & 4 = 2 (human); Bedingungen 1 & 2 = 1 (auto)
+# 
+# ⇒ statistische Frage: weicht die mittlere Bewerbungsabsicht von Universitäten mit menschlicher Auswertung von maschineller Auswertung ab?
+
+h1a_model <- effectLite(y = "intension", # AV
+                 x = "human_auto", # Treatmentvariable
+                 control = "auto", # Kodierung der Kontrollgruppe
+                 k = c( "gender", "course_of_study"),
+                 z = c("attraction", "c_age"),
+                 data = assessment_data,
+                 interactions = "none" # Interaktion zwischen Kovariaten zulassen, jedoch nicht zwischen Kovariate und treatmentvariable
+                 )
+
+print(h1a_model)
+```
+
+ - b) wahrgenommener Attraktivität der Universität.
+ - “”
+ - ordinale AV: universitarial attractiveness (1 = strongly agree; 6 = strongly disagree)
+ - ⇒ statistische Frage: weicht die mittlere Attraktivität von Universitäten mit menschlicher Auswertung von maschineller Auswertung ab?
+
+```{r, include=TRUE, echo=TRUE, warning=FALSE}
+
+
+
+h1b_model <- effectLite(y = "attraction", # AV
+                 x = "human_auto", # Treatmentvariable
+                 control = "auto", # Kodierung der Kontrollgruppe
+                 k = c( "gender", "course_of_study"),
+                 z = c("intension", "c_age"),
+                 data = assessment_data,
+                 interactions = "none" # Interaktion zwischen Kovariaten zulassen, jedoch nicht zwischen Kovariate und treatmentvariable
+                 )
+
+print(h1b_model)
+```
+
+## Hypothesentest H2: Haupteffekt der UV2
+Flexible Prüfungsabnahme (in Zeit & Ort)  im Vergleich zu unflexibler Prüfungsabnahme führt zu höherer 
+
+ - a) Bewerbungsabsicht 
+
+```{r, include=TRUE, echo=TRUE, warning=FALSE}
+# - klassische ANCOVA 
+# - dichotome nominale UV: Prüfungsmodalität (flexibel = 0; fixed = 1)
+# - dichotome Kovariate: Prüfungsauswertung (human = 0; auto = 1)
+# - ordinale kategoriale Kovariate: Alter (18 - 99)
+# - nominale Kovariate: Geschlecht (weiblich = 1; männlich = 2; andere = 3; kA = 4)
+# - nominale Kovariate: Studiengang (1 - 12)
+# - ordinale kategoriale AV: intention to apply (1 = strongly agree; 6 = strongly disagree)
+# - Dummykodierung: Bedingung 1 & 3 = 2 (flexibel); Bedingungen 2 & 4 = 1 (fix)
+# 
+# ⇒ statistische Frage: weicht die mittlere Bewerbungsabsicht von Universitäten mit flexibler orts- & zeitabhängiger Prüfungsabnahme von flexibler ab?
+
+h2a_model <- effectLite(y = "intension", # AV
+                 x = "flexible_fixed", # Treatmentvariable
+                 control = "fixed", # Kodierung der Kontrollgruppe
+                 k = c( "gender", "course_of_study"),
+                 z = c("attraction", "c_age"),
+                 data = modality_data,
+                 interactions = "none" # Interaktion zwischen Kovariaten zulassen, jedoch nicht zwischen Kovariate und treatmentvariable
+                 )
+
+print(h2a_model)
+```
+
+ - b) wahrgenommener Attraktivität der Universität.
+
+```{r, include=TRUE, echo=TRUE, warning=FALSE}
+
+# - “”
+# - ordinale kategoriale AV: universitarial attractiveness (1 = strongly agree; 6 = strongly disagree)
+# ⇒ statistische Frage: weicht die mittlere Attraktivität von Universitäten mit flexibler orts- & zeitabhängiger Prüfungsabnahme von flexibler ab?
+
+h2b_model <- effectLite(y = "attraction", # AV
+                 x = "flexible_fixed", # Treatmentvariable
+                 control = "fixed", # Kodierung der Kontrollgruppe
+                 k = c( "gender", "course_of_study"),
+                 z = c("intension", "c_age"),
+                 data = modality_data,
+                 interactions = "none" # Interaktion zwischen Kovariaten zulassen, jedoch nicht zwischen Kovariate und treatmentvariable
+                 )
+
+print(h2b_model)
+```
+
+
+## Hypothesentest H3: Moderation
+
+Bei Personen mit hoch ausgeprägter technischer Affinität ist der Effekt in der H1 geringer als bei Personen mit niedrig ausgeprägter technischer Affinität 
+ 
+ - a) Bewerbungsabsicht 
+
+```{r, include=TRUE, echo=TRUE, warning=FALSE}
+# - generalisierte ANCOVA 
+# - dichotome nominalskalierte UV1: Prüfungsmodalität (flexibel = 0; fix = 1)
+# - (polytomer) ordinalskalierter Moderator: technische Affinität (not true at all = 1; very true = 5) 
+# - dichotome Kovariate: Prüfungsmodalität (flexibel = 0; fix = 1)
+# - ordinale kategoriale Kovariate: Alter (18 - 99)
+# - nominale Kovariate: Geschlecht (weiblich = 1; männlich = 2; andere = 3; kA = 4)
+# - nominale Kovariate: Studiengang (1 - 12)
+# - ordinale kategoriale AV: intention to apply (1 = strongly agree; 6 = strongly disagree)
+# - Dummykodierung: Bedingung 3 & 4 = 2 (human); Bedingungen 1 & 2 = 1 (auto)
+# 
+# ⇒ statistische Frage: ist der Interaktionsterm zwischen der Prüfungsmodalität und technischer Affinität bedeutsam in ihrer Vorhersage der Bewerbungsabsicht?
+
+h3a_model <- effectLite(y = "intension", # AV
+                 x = "human_auto", # Treatmentvariable
+                 control = "auto", # Kodierung der Kontrollgruppe
+                 k = c( "gender", "course_of_study"),
+                 z = c("attraction", "c_age", "mean_technical_affinity"),
+                 data = assessment_data,
+                 interactions = "X:K" # Interaktion zwischen Kovariaten zulassen, jedoch nicht zwischen Kovariate und treatmentvariable
+                 )
+
+print(h3a_model)
+
+# plot der von bedingten Effekten + SE
+# https://rdrr.io/cran/EffectLiteR/src/R/elr_plot_condeffects.R
+conditionalEffectsPlot(h3a_model, zsel = "mean_technical_affinity", gxsel = "g1", 
+                       colour = "", show.ci = TRUE)
+```
+
+b) wahrgenommener Attraktivität der Universität.
+
+```{r, include=TRUE, echo=TRUE, warning=FALSE}
+# - “”
+# - ordinale kategoriale AV: universitarial attractiveness (1 = strongly agree; 6 = strongly disagree)
+# ⇒ statistische Frage: ist der Interaktionsterm zwischen der Prüfungsmodalität und technischer Affinität bedeutsam in ihrer Vorhersage der Attraktivität der Universität?
+
+
+h3b_model <- effectLite(y = "attraction", # AV
+                 x = "human_auto", # Treatmentvariable
+                 control = "auto", # Kodierung der Kontrollgruppe
+                 k = c( "gender", "course_of_study"),
+                 z = c("intension", "c_age", "mean_technical_affinity"),
+                 data = assessment_data,
+                 interactions = "X:K" # Interaktion zwischen Kovariaten zulassen, jedoch nicht zwischen Kovariate und treatmentvariable
+                 )
+
+print(h3b_model)
+
+# plot der von bedingten Effekten + SE
+# https://rdrr.io/cran/EffectLiteR/src/R/elr_plot_condeffects.R
+conditionalEffectsPlot(h3b_model, zsel = "mean_technical_affinity", gxsel = "g1", 
+                       colour = "", show.ci = TRUE)
+
+```
+
+
+
