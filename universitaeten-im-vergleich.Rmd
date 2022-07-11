@@ -7,9 +7,10 @@ output:
     toc: true
     toc_float: true
     number_sections: true
+    code_folding: hide
 ---
 
-```{r setup, include=TRUE}
+```{r setup, include=TRUE, warning=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 # Daten einlesen
 library(readr)
@@ -162,7 +163,7 @@ Mittelwerte d. abhängigen Variablen Bewerbungsabsicht:
  - Personen, die Unis mit menschlicher Auswertung präferieren: <b>`r mean(study_data$mean_attraction_uni_human_assessment)`</b>
  - Personen, die Unis mit maschineller Auswertung präferieren: <b>`r mean(study_data$mean_attraction_uni_auto_assessment)`</b>
 
-```{r, include=TRUE, echo=TRUE}
+```{r, include=TRUE, echo=TRUE, warning=FALSE}
 
 summary(study_data)
 # Histogramm einzelner Variablen ausgeben
@@ -192,6 +193,8 @@ Menschliche Prüfungsauswertung (human) im Vergleich zu algorithmischer Auswertu
 
 ```{r, include=TRUE, echo=TRUE, warning=FALSE}
 library(EffectLiteR)
+
+?EffectLiteR
 
 # - klassische ANCOVA 
 # - dichotome nominale UV: Prüfungsauswertung (human = 0; auto = 1)
@@ -312,7 +315,7 @@ h3a_model <- effectLite(y = "intension", # AV
                  k = c( "gender", "course_of_study"),
                  z = c("attraction", "c_age", "mean_technical_affinity"),
                  data = assessment_data,
-                 interactions = "X:K" # Interaktion zwischen Kovariaten zulassen, jedoch nicht zwischen Kovariate und treatmentvariable
+                 interactions = "X:K" # Interaktion zwischen Treatment und Kovariaten zulassen
                  )
 
 print(h3a_model)
@@ -330,6 +333,8 @@ b) wahrgenommener Attraktivität der Universität.
 # - ordinale kategoriale AV: universitarial attractiveness (1 = strongly agree; 6 = strongly disagree)
 # ⇒ statistische Frage: ist der Interaktionsterm zwischen der Prüfungsmodalität und technischer Affinität bedeutsam in ihrer Vorhersage der Attraktivität der Universität?
 
+?effectLiteR
+
 
 h3b_model <- effectLite(y = "attraction", # AV
                  x = "human_auto", # Treatmentvariable
@@ -337,7 +342,7 @@ h3b_model <- effectLite(y = "attraction", # AV
                  k = c( "gender", "course_of_study"),
                  z = c("intension", "c_age", "mean_technical_affinity"),
                  data = assessment_data,
-                 interactions = "X:K" # Interaktion zwischen Kovariaten zulassen, jedoch nicht zwischen Kovariate und treatmentvariable
+                 interactions = "X:K" # Interaktion zwischen Treatment und Kovariaten zulassen
                  )
 
 print(h3b_model)
